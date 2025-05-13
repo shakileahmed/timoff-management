@@ -1,0 +1,37 @@
+FROM node:14
+
+# Set working directory
+WORKDIR /app
+
+# Copy package.json first
+COPY package.json ./
+
+# Copy all application files
+COPY . .
+
+# Remove existing node_modules and package-lock
+RUN rm -rf node_modules package-lock.json
+
+# Fix start script if needed
+RUN if grep -q "wwww" package.json; then sed -i 's/bin\/wwww/bin\/www/' package.json; fi
+RUN if [ -f bin/wwww ] && [ ! -f bin/www ]; then mv bin/wwww bin/www; fi
+RUN chmod +x bin/www || true
+
+# Install dependencies
+RUN npm install
+
+# Create database directory if needed
+RUN mkdir -p db && chmod 777 db
+
+# Create non-root user
+RUN groupadd -r app && useradd -r -g app -d /app app \
+    && chown -R app:app /app
+
+# Switch to non-root user
+USER app
+
+# Expose port
+EXPOSE 3000
+
+# Start command
+CMD ["npm", "start"]
